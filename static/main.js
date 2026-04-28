@@ -53,18 +53,34 @@ document.addEventListener('DOMContentLoaded', function(){
     if (productsData.length === 0) return;
 
     // Build 8-char payload: GRN0, GRN1, GRN2, GRN3, RED0, RED1, RED2, RED3
-    let payload = "";
+    let states = [];
     
     // Check first 4 products for GRN LEDs
     for (let i = 0; i < 4; i++) {
+      // 条件: 投入金額 >= 価格 かつ 在庫 > 0
       if (productsData[i] && totalAmount >= productsData[i].price && productsData[i].stock > 0) {
-        payload += "1"; // Affordable and in stock
+        states.push("1"); // 条件を満たす：点灯
       } else {
-        payload += "0";
+        states.push("0"); // 条件を満たさない：消灯
       }
     }
-    // RED LEDs (indices 4-7) - remain 0 for now
-    payload += "0000";
+    // RED LEDs (indices 4-7): 在庫切れの場合に点灯
+    for (let i = 0; i < 4; i++) {
+      if (productsData[i] && productsData[i].stock <= 0) {
+        states.push("1"); // 在庫なし：赤点灯
+      } else {
+        states.push("0");
+      }
+    }
+
+    const payload = states.join("");
+    
+    // UIの表示を即座に更新（レスポンス向上）
+    const ids = ['GRN0','GRN1','GRN2','GRN3','RED0','RED1','RED2','RED3'];
+    for(let i=0; i<8; i++) {
+      const btn = idToBtn[ids[i]];
+      if(btn) setBtnState(btn, states[i]);
+    }
 
     try {
       await fetch('/api/led/bulk', {
@@ -94,24 +110,48 @@ document.addEventListener('DOMContentLoaded', function(){
     await updateVendingMachineLEDs();
   });
 
+  // Render products to the UI
+  function renderProducts() {
+    const productList = document.getElementById('product-list');
+    productList.innerHTML = '';
+    productsData.forEach(p => {
+      const div = document.createElement('div');
+      div.className = 'product-card';
+      div.innerHTML = `
+        <img src="${p.image_url}" alt="${p.name}" class="product-image">
+        <div class="product-price">${p.price}円</div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-stock">在庫: ${p.stock}</div>
+      `;
+      productList.appendChild(div);
+    });
+  }
+
+  // Handle product purchase
+  async function purchaseProduct(index) {
+    const product = productsData[index];
+    if (!product) return;
+    try {
+      const resp = await fetch(`/api/products/${product.id}/purchase`, { method: 'POST' });
+      const j = await resp.json();
+      if (j.ok) {
+        productsData[index] = j.product; // Update local data
+        addLog(`Purchased: ${j.product.name}. Remaining stock: ${j.product.stock}`);
+        renderProducts();
+        await updateVendingMachineLEDs();
+      }
+    } catch (err) {
+      console.error('Purchase failed:', err);
+      addLog('Purchase failed');
+    }
+  }
+
   // Load product information from database
   async function loadProducts() {
     try {
       const resp = await fetch('/api/products');
       productsData = await resp.json();
-      const productList = document.getElementById('product-list');
-      productList.innerHTML = '';
-      productsData.forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'product-card';
-        div.innerHTML = `
-          <img src="${p.image_url}" alt="${p.name}" class="product-image">
-          <div class="product-price">${p.price}円</div>
-          <div class="product-name">${p.name}</div>
-          <div class="product-stock">在庫: ${p.stock}</div>
-        `;
-        productList.appendChild(div);
-      });
+      renderProducts();
       addLog('Products loaded from database');
       await updateVendingMachineLEDs();
     } catch (err) {
@@ -146,6 +186,16 @@ document.addEventListener('DOMContentLoaded', function(){
         addLog(`LED status updated: ${msg.payload}`);
       } else if(msg.type === 'NTF'){
         addLog(`Notification: ${msg.event} is ${msg.state}`);
+        if(msg.state.toUpperCase() === 'OFF' && msg.event.startsWith('BTN')){
+          const btnIdx = parseInt(msg.event.replace('BTN', ''));
+          const product = productsData[btnIdx];
+          if(product && totalAmount >= product.price && product.stock > 0){
+            addLog(`Product [${product.name}] selected via ${msg.event}.`);
+            totalAmount = 0;
+            totalAmountDisplay.textContent = totalAmount;
+            purchaseProduct(btnIdx);
+          }
+        }
       } else if(msg.type === 'BTN'){
         addLog(`Button snapshot: ${msg.payload}`);
       } else if(msg.type === 'ACK'){
@@ -153,6 +203,7 @@ document.addEventListener('DOMContentLoaded', function(){
       } else if(msg.type === 'ERR'){
         addLog(`ERROR: ${msg.code} - ${msg.msg}`);
       } else {
+        addLog(`Unknown/Raw message: ${JSON.stringify(msg)}`);
         console.log("Unknown msg type:", msg);
       }
     }catch(err){ console.error(err); }

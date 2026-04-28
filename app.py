@@ -126,6 +126,19 @@ def reader_loop(client, stop_event):
         else:
             time.sleep(0.01)
 
+@app.route('/api/products/<int:product_id>/purchase', methods=['POST'])
+def purchase_product(product_id):
+    db = get_db()
+    # 在庫を1減らす（ただし0未満にはしない）
+    db.execute('UPDATE products SET stock = MAX(0, stock - 1) WHERE id = ?', (product_id,))
+    db.commit()
+    
+    # 更新後の商品情報を取得して返す
+    cursor = db.execute('SELECT * FROM products WHERE id = ?', (product_id,))
+    product = dict(cursor.fetchone())
+    db.close()
+    return jsonify({'ok': True, 'product': product})
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', required=True, help='Serial COM port, e.g., COM3')

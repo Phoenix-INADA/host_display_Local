@@ -49,10 +49,8 @@ class PicoSerial:
             raw = self.ser.readline()
             if not raw:
                 return None
-            # preserve exact content except remove trailing LF
-            s = raw.decode('utf-8', errors='replace')
-            if s.endswith('\n'):
-                s = s[:-1]
+            # remove trailing \r\n or other whitespace
+            s = raw.decode('utf-8', errors='replace').strip()
             return s
         except Exception:
             return None
