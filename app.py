@@ -31,17 +31,12 @@ def init_db():
             name TEXT NOT NULL,
             price INTEGER NOT NULL,
             stock INTEGER NOT NULL,
-            max_stock INTEGER NOT NULL DEFAULT 10,
             capacity INTEGER NOT NULL DEFAULT 10,
             image_url TEXT
         )
     ''')
     
     # 既存テーブルに新カラムがない場合に備えて追加（マイグレーション）
-    try:
-        db.execute('ALTER TABLE products ADD COLUMN max_stock INTEGER NOT NULL DEFAULT 10')
-    except sqlite3.OperationalError:
-        pass
     try:
         db.execute('ALTER TABLE products ADD COLUMN capacity INTEGER NOT NULL DEFAULT 10')
     except sqlite3.OperationalError:
@@ -51,12 +46,12 @@ def init_db():
     cursor = db.execute('SELECT COUNT(*) FROM products')
     if cursor.fetchone()[0] == 0:
         initial_products = [
-            ('りんご', 150, 10, 20, 20, '/static/images/apple.png'),
-            ('バナナ', 100, 20, 30, 30, '/static/images/banana.png'),
-            ('オレンジ', 120, 15, 25, 25, '/static/images/orange.png'),
-            ('メロン', 500, 5, 10, 10, '/static/images/melon.png')
+            ('りんご', 150, 10, 20, '/static/images/apple.png'),
+            ('バナナ', 100, 20, 30, '/static/images/banana.png'),
+            ('オレンジ', 120, 15, 25, '/static/images/orange.png'),
+            ('メロン', 500, 5, 10, '/static/images/melon.png')
         ]
-        db.executemany('INSERT INTO products (name, price, stock, max_stock, capacity, image_url) VALUES (?, ?, ?, ?, ?, ?)', initial_products)
+        db.executemany('INSERT INTO products (name, price, stock, capacity, image_url) VALUES (?, ?, ?, ?, ?)', initial_products)
     
     db.commit()
     db.close()

@@ -48,8 +48,20 @@ document.addEventListener('DOMContentLoaded', function(){
   let totalAmount = 0;
   let productsData = []; // Store products for affordability check
   const totalAmountDisplay = document.getElementById('total-amount');
+  const restockBtn = document.getElementById('restock-btn');
   
   async function updateVendingMachineLEDs() {
+    // Update restock button state based on totalAmount
+    if (totalAmount > 0) {
+      restockBtn.disabled = true;
+      restockBtn.style.opacity = "0.5";
+      restockBtn.style.cursor = "not-allowed";
+    } else {
+      restockBtn.disabled = false;
+      restockBtn.style.opacity = "1.0";
+      restockBtn.style.cursor = "pointer";
+    }
+
     if (productsData.length === 0) return;
 
     // Build 8-char payload: GRN0, GRN1, GRN2, GRN3, RED0, RED1, RED2, RED3

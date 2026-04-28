@@ -5,6 +5,7 @@
 
 ### 主な機能
 - **商品管理**: SQLiteデータベースによる商品の価格・在庫管理。
+- **一括補充機能**: 管理者用ボタンから全商品の在庫を「格納可能数」まで即座に復元。
 - **LED制御**: Pico2上のLED（緑4つ、赤4つ）の状態制御（点灯、消灯、点滅）。
 - **投入金額シミュレーション**: Web UIからのコイン投入と、金額に応じた購入可能表示（緑LED点灯）。
 - **リアルタイム通知**: Pico2からのボタン押下イベント等をSSE (Server-Sent Events) を用いてブラウザに即時反映。
@@ -35,7 +36,6 @@ graph TD
 | `name` | TEXT | 商品名 |
 | `price` | INTEGER | 価格 |
 | `stock` | INTEGER | 在庫数 |
-| `max_stock` | INTEGER | 在庫最大数 |
 | `capacity` | INTEGER | 格納可能数 |
 | `image_url` | TEXT | 商品画像のURL |
 
@@ -44,6 +44,7 @@ graph TD
 ### 商品関連
 - `GET /api/products`: 全商品情報の取得。
 - `POST /api/products/<id>/purchase`: 指定商品の購入処理（在庫を1減らす）。
+- `POST /api/products/restock`: 全商品の在庫を `capacity` の値まで補充。
 
 ### LED・デバイス関連
 - `POST /api/led/set`: 単一LEDの制御。
@@ -92,3 +93,10 @@ graph TD
   - `melon.png`: メロン
 
 ※データベース（`products.db`）が既に存在する場合、`app.py` の初期データ変更を反映させるには、既存の `products.db` を削除してからサーバーを再起動してください。
+
+## 9. 変更履歴
+- **2026-04-28**: 
+    - `products` テーブルに `capacity` (格納可能数) カラムを追加。
+    - 商品一括補充機能（`/api/products/restock`）を実装。
+    - Web UI に「商品補充」ボタンを追加。
+    - 金額投入中は「商品補充」ボタンを無効化するインターロック機能を追加。
