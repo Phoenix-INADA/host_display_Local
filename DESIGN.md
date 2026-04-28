@@ -35,6 +35,8 @@ graph TD
 | `name` | TEXT | 商品名 |
 | `price` | INTEGER | 価格 |
 | `stock` | INTEGER | 在庫数 |
+| `max_stock` | INTEGER | 在庫最大数 |
+| `capacity` | INTEGER | 格納可能数 |
 | `image_url` | TEXT | 商品画像のURL |
 
 ## 4. API 仕様 (Web)

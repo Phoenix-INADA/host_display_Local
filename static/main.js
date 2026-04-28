@@ -110,6 +110,22 @@ document.addEventListener('DOMContentLoaded', function(){
     await updateVendingMachineLEDs();
   });
 
+  document.getElementById('restock-btn').addEventListener('click', async () => {
+    try {
+      const resp = await fetch('/api/products/restock', { method: 'POST' });
+      const j = await resp.json();
+      if (j.ok) {
+        productsData = j.products;
+        renderProducts();
+        addLog('All products restocked to capacity');
+        await updateVendingMachineLEDs();
+      }
+    } catch (err) {
+      console.error('Restock failed:', err);
+      addLog('Restock failed');
+    }
+  });
+
   // Render products to the UI
   function renderProducts() {
     const productList = document.getElementById('product-list');
@@ -127,6 +143,26 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
 
+  function playDispenseAnimation(product) {
+    const overlay = document.getElementById('dispense-overlay');
+    const img = document.getElementById('dispense-item');
+    const msg = document.getElementById('dispense-msg');
+    
+    img.src = product.image_url;
+    msg.textContent = `ガタン！ [${product.name}] を排出しました`;
+    
+    // Reset animation
+    img.className = '';
+    void img.offsetWidth; // trigger reflow
+    img.className = 'dispense-animation';
+    
+    overlay.style.display = 'flex';
+    
+    setTimeout(() => {
+      overlay.style.display = 'none';
+    }, 2500);
+  }
+
   // Handle product purchase
   async function purchaseProduct(index) {
     const product = productsData[index];
@@ -137,6 +173,9 @@ document.addEventListener('DOMContentLoaded', function(){
       if (j.ok) {
         productsData[index] = j.product; // Update local data
         addLog(`Purchased: ${j.product.name}. Remaining stock: ${j.product.stock}`);
+        
+        playDispenseAnimation(j.product);
+        
         renderProducts();
         await updateVendingMachineLEDs();
       }

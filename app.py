@@ -24,28 +24,42 @@ def get_db():
     return conn
 
 def init_db():
-    if not os.path.exists(DATABASE):
-        with app.app_context():
-            db = get_db()
-            db.execute('''
-                CREATE TABLE IF NOT EXISTS products (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    price INTEGER NOT NULL,
-                    stock INTEGER NOT NULL,
-                    image_url TEXT
-                )
-            ''')
-            # 初期データの投入
-            initial_products = [
-                ('りんご', 150, 10, '/static/images/apple.png'),
-                ('バナナ', 100, 20, '/static/images/banana.png'),
-                ('オレンジ', 120, 15, '/static/images/orange.png'),
-                ('メロン', 500, 5, '/static/images/melon.png')
-            ]
-            db.executemany('INSERT INTO products (name, price, stock, image_url) VALUES (?, ?, ?, ?)', initial_products)
-            db.commit()
-            db.close()
+    db = get_db()
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            price INTEGER NOT NULL,
+            stock INTEGER NOT NULL,
+            max_stock INTEGER NOT NULL DEFAULT 10,
+            capacity INTEGER NOT NULL DEFAULT 10,
+            image_url TEXT
+        )
+    ''')
+    
+    # 既存テーブルに新カラムがない場合に備えて追加（マイグレーション）
+    try:
+        db.execute('ALTER TABLE products ADD COLUMN max_stock INTEGER NOT NULL DEFAULT 10')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        db.execute('ALTER TABLE products ADD COLUMN capacity INTEGER NOT NULL DEFAULT 10')
+    except sqlite3.OperationalError:
+        pass
+
+    # データが空の場合のみ初期データを投入
+    cursor = db.execute('SELECT COUNT(*) FROM products')
+    if cursor.fetchone()[0] == 0:
+        initial_products = [
+            ('りんご', 150, 10, 20, 20, '/static/images/apple.png'),
+            ('バナナ', 100, 20, 30, 30, '/static/images/banana.png'),
+            ('オレンジ', 120, 15, 25, 25, '/static/images/orange.png'),
+            ('メロン', 500, 5, 10, 10, '/static/images/melon.png')
+        ]
+        db.executemany('INSERT INTO products (name, price, stock, max_stock, capacity, image_url) VALUES (?, ?, ?, ?, ?, ?)', initial_products)
+    
+    db.commit()
+    db.close()
 
 init_db()
 
@@ -125,6 +139,19 @@ def reader_loop(client, stop_event):
             msg_queue.put(parsed)
         else:
             time.sleep(0.01)
+
+@app.route('/api/products/restock', methods=['POST'])
+def restock_products():
+    db = get_db()
+    # 全商品の在庫をcapacityの値に更新
+    db.execute('UPDATE products SET stock = capacity')
+    db.commit()
+    
+    # 更新後の商品情報を取得して返す
+    cursor = db.execute('SELECT * FROM products')
+    products = [dict(row) for row in cursor.fetchall()]
+    db.close()
+    return jsonify({'ok': True, 'products': products})
 
 @app.route('/api/products/<int:product_id>/purchase', methods=['POST'])
 def purchase_product(product_id):
