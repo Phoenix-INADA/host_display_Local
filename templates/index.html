@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>PICO2 LED Control</title>
+  <style>
+    .led { width: 120px; height: 48px; margin: 6px; font-size: 16px; }
+    .state-0 { background: #ddd; }
+    .state-1 { background: #6f6; }
+    .state-2 { background: #ff6; }
+    .product-grid { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 20px; }
+    .product-card { 
+      border: 2px solid #333; 
+      border-radius: 8px; 
+      padding: 10px; 
+      width: 120px; 
+      text-align: center; 
+      background: #fff;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    }
+    .product-image { width: 100px; height: 100px; object-fit: cover; margin-bottom: 8px; border-radius: 4px; }
+    .product-price { font-weight: bold; font-size: 1.2em; color: #d32f2f; margin: 5px 0; }
+    .product-name { font-size: 0.9em; color: #666; }
+    .product-stock { font-size: 0.8em; color: #888; }
+  </style>
+</head>
+<body>
+  <h1>PICO2 Vending Machine Simulator</h1>
+  <div id="leds">
+    {% for id in led_ids %}
+      <button class="led state-0" data-led-id="{{id}}">{{id}}</button>
+    {% endfor %}
+  </div>
+  <div>
+    <button id="req-leds">Request LED Status</button>
+    <button id="all-off">All LEDs OFF</button>
+  </div>
+  <hr>
+  <h3>Amount Selection</h3>
+  <div>
+    <button class="coin" data-amount="10">10円</button>
+    <button class="coin" data-amount="50">50円</button>
+    <button class="coin" data-amount="100">100円</button>
+    <button id="clear-amount">クリア</button>
+  </div>
+  <p>投入金額合計: <span id="total-amount" style="font-size: 1.5em; font-weight: bold; color: #007bff;">0</span>円</p>
+  <hr>
+  <h3>Product Selection</h3>
+  <div id="product-list" class="product-grid">
+    <!-- Products will be loaded here -->
+  </div>
+  <hr>
+  <h3>Notifications</h3>
+  <div id="log" style="height: 200px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; font-family: monospace; background: #f9f9f9;"></div>
+  <script src="/static/main.js"></script>
+</body>
+</html>
