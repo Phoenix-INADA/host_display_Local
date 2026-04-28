@@ -38,10 +38,10 @@ def init_db():
             ''')
             # 初期データの投入
             initial_products = [
-                ('りんご', 150, 10, 'https://placehold.jp/24/cc0000/ffffff/150x150.png?text=りんご'),
-                ('バナナ', 100, 20, 'https://placehold.jp/24/eeee00/333333/150x150.png?text=バナナ'),
-                ('オレンジ', 120, 15, 'https://placehold.jp/24/ffa500/ffffff/150x150.png?text=オレンジ'),
-                ('メロン', 500, 5, 'https://placehold.jp/24/90ee90/333333/150x150.png?text=メロン')
+                ('りんご', 150, 10, '/static/images/apple.png'),
+                ('バナナ', 100, 20, '/static/images/banana.png'),
+                ('オレンジ', 120, 15, '/static/images/orange.png'),
+                ('メロン', 500, 5, '/static/images/melon.png')
             ]
             db.executemany('INSERT INTO products (name, price, stock, image_url) VALUES (?, ?, ?, ?)', initial_products)
             db.commit()

@@ -79,3 +79,14 @@ graph TD
 - `templates/index.html`: UIレイアウト。
 - `Interface.md`: 通信仕様詳細。
 - `products.db`: データベースファイル。
+
+## 8. 画像アセットの管理
+画像データは外部サーバーではなく、サーバー内の以下のディレクトリに配置します。
+- **配置場所**: `static/images/`
+- **ファイル名規則**:
+  - `apple.png`: りんご
+  - `banana.png`: バナナ
+  - `orange.png`: オレンジ
+  - `melon.png`: メロン
+
+※データベース（`products.db`）が既に存在する場合、`app.py` の初期データ変更を反映させるには、既存の `products.db` を削除してからサーバーを再起動してください。
