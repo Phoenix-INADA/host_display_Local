@@ -239,12 +239,48 @@ document.addEventListener('DOMContentLoaded', function(){
         addLog(`Notification: ${msg.event} is ${msg.state}`);
         if(msg.state.toUpperCase() === 'OFF' && msg.event.startsWith('BTN')){
           const btnIdx = parseInt(msg.event.replace('BTN', ''));
-          const product = productsData[btnIdx];
-          if(product && totalAmount >= product.price && product.stock > 0){
-            addLog(`Product [${product.name}] selected via ${msg.event}.`);
+          
+          if (btnIdx >= 0 && btnIdx <= 3) {
+            // Product selection (0-3)
+            const product = productsData[btnIdx];
+            if(product && totalAmount >= product.price && product.stock > 0){
+              addLog(`Product [${product.name}] selected via ${msg.event}.`);
+              totalAmount = 0;
+              totalAmountDisplay.textContent = totalAmount;
+              purchaseProduct(btnIdx);
+            }
+          } else if (btnIdx === 4) { // 10 yen
+            totalAmount += 10;
+            totalAmountDisplay.textContent = totalAmount;
+            addLog(`Added 10円 via BTN4. Total: ${totalAmount}円`);
+            updateVendingMachineLEDs();
+          } else if (btnIdx === 5) { // 50 yen
+            totalAmount += 50;
+            totalAmountDisplay.textContent = totalAmount;
+            addLog(`Added 50円 via BTN5. Total: ${totalAmount}円`);
+            updateVendingMachineLEDs();
+          } else if (btnIdx === 6) { // 100 yen
+            totalAmount += 100;
+            totalAmountDisplay.textContent = totalAmount;
+            addLog(`Added 100円 via BTN6. Total: ${totalAmount}円`);
+            updateVendingMachineLEDs();
+          } else if (btnIdx === 7) { // 500 yen
+            totalAmount += 500;
+            totalAmountDisplay.textContent = totalAmount;
+            addLog(`Added 500円 via BTN7. Total: ${totalAmount}円`);
+            updateVendingMachineLEDs();
+          } else if (btnIdx === 8) { // Clear
             totalAmount = 0;
             totalAmountDisplay.textContent = totalAmount;
-            purchaseProduct(btnIdx);
+            addLog('Amount cleared via BTN8');
+            updateVendingMachineLEDs();
+          } else if (btnIdx === 9) { // Restock
+            if (totalAmount === 0) {
+              addLog('Restocking via BTN9...');
+              restockBtn.click(); // Trigger the existing restock logic
+            } else {
+              addLog('Cannot restock while amount is inserted (BTN9 ignored)');
+            }
           }
         }
       } else if(msg.type === 'BTN'){
