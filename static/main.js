@@ -67,13 +67,32 @@ document.addEventListener('DOMContentLoaded', function(){
     // Build 8-char payload: GRN0, GRN1, GRN2, GRN3, RED0, RED1, RED2, RED3
     let states = [];
     
-    // Check first 4 products for GRN LEDs
+    // Check first 4 products for GRN LEDs and Web Buy Buttons
+    const buyBtns = document.querySelectorAll('.buy-btn');
     for (let i = 0; i < 4; i++) {
-      // 条件: 投入金額 >= 価格 かつ 在庫 > 0
-      if (productsData[i] && totalAmount >= productsData[i].price && productsData[i].stock > 0) {
-        states.push("1"); // 条件を満たす：点灯
+      const isAffordable = productsData[i] && totalAmount >= productsData[i].price && productsData[i].stock > 0;
+      
+      // Update LED state
+      if (isAffordable) {
+        states.push("1"); // 点灯
       } else {
-        states.push("0"); // 条件を満たさない：消灯
+        states.push("0"); // 消灯
+      }
+
+      // Update Web Button state
+      if (buyBtns[i]) {
+        buyBtns[i].disabled = !isAffordable;
+        if (isAffordable) {
+          buyBtns[i].style.backgroundColor = "#4caf50";
+          buyBtns[i].style.color = "white";
+          buyBtns[i].style.cursor = "pointer";
+          buyBtns[i].style.opacity = "1.0";
+        } else {
+          buyBtns[i].style.backgroundColor = "#ccc";
+          buyBtns[i].style.color = "#666";
+          buyBtns[i].style.cursor = "not-allowed";
+          buyBtns[i].style.opacity = "0.6";
+        }
       }
     }
     // RED LEDs (indices 4-7): 在庫切れの場合に点灯
@@ -142,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function(){
   function renderProducts() {
     const productList = document.getElementById('product-list');
     productList.innerHTML = '';
-    productsData.forEach(p => {
+    productsData.forEach((p, index) => {
       const div = document.createElement('div');
       div.className = 'product-card';
       div.innerHTML = `
@@ -150,8 +169,23 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="product-price">${p.price}円</div>
         <div class="product-name">${p.name}</div>
         <div class="product-stock">在庫: ${p.stock}</div>
+        <button class="buy-btn" data-index="${index}" style="margin-top: 10px; padding: 5px 10px; cursor: pointer; width: 100%;">購入</button>
       `;
       productList.appendChild(div);
+    });
+
+    // Add click listeners to new buy buttons
+    document.querySelectorAll('.buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const index = parseInt(btn.dataset.index);
+        const product = productsData[index];
+        if (product && totalAmount >= product.price && product.stock > 0) {
+          addLog(`Product [${product.name}] selected via Web UI.`);
+          totalAmount = 0;
+          totalAmountDisplay.textContent = totalAmount;
+          purchaseProduct(index);
+        }
+      });
     });
   }
 
