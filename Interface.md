@@ -13,13 +13,6 @@
 データ順序（重要）
 - LEDバイト順: 緑1, 緑2, 緑3, 緑4, 赤1, 赤2, 赤3, 赤4 の順で8文字。インデックスは 0 から 7 として扱う。
 - Buttonバイト順: BTN0〜BTN9 の順で10文字。
-  - BTN0〜BTN3: 商品選択（商品0〜3）
-  - BTN4: 10円投入
-  - BTN5: 50円投入
-  - BTN6: 100円投入
-  - BTN7: 500円投入
-  - BTN8: 金額クリア
-  - BTN9: 商品補充
 
 パソコン -> PICO2（コマンド）
 1) LED 状態変更
@@ -43,6 +36,10 @@
 - フォーマット: [PC]:STA:LED\n  または  [PC]:STA:BTN\n
 - 受信側（PI）は要求を受け取り次第、対応する状態通知を直ちに送信する。
 
+3) ベンダーID要求（VID）
+- フォーマット: [PC]:VID\n
+- 受信側（PI）は [PI]:VID:VENDER-001\n を返す。
+
 PICO2 -> パソコン（通知）
 1) LED 状態通知
 - フォーマット: [PI]:LED:<8chars>\n
@@ -63,6 +60,10 @@ PICO2 -> パソコン（通知）
 - STATE: OFF または ON（英字）
 - 例: [PI]:NTF:BTN0:OFF\n  （ボタン0が離された）
 
+4) ベンダーID通知
+- フォーマット: [PI]:VID:<vender_id>\n
+- 例: [PI]:VID:VENDER-001\n
+
 エラー／ACK
 - 正常受信確認（推奨）: PICO2 はコマンド受理時に ACK を返せる。
   - 形式: [PI]:ACK:<CMD>\n  （例: [PI]:ACK:LED）
@@ -79,9 +80,11 @@ PICO2 -> パソコン（通知）
 - PC→PI: LED 全消灯:  "[PC]:LED:00000000\n"
 - PC→PI: LED 指定なし（2番目だけ点滅）: "[PC]:LED:-2-0----\n"
 - PC→PI: STA LED 要求: "[PC]:STA:LED\n"
+- PC→PI: VID 要求: "[PC]:VID\n"
 - PI→PC: LED 状態通知: "[PI]:LED:11002200\n"
 - PI→PC: BTN snapshot: "[PI]:BTN:0100000000\n"
 - PI→PC: BTN event: "[PI]:NTF:BTN9:ON\n"
+- PI→PC: VID 通知: "[PI]:VID:VENDER-001\n"
 
 変更履歴 / 目的
 - 本稿は実装不明点（フレーミング、順序、エンコーディング、エラー処理、具体例）を補完するための改訂案である。

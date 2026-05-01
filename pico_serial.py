@@ -97,6 +97,8 @@ def parse_pi_message(line: str):
                 return {'type': 'NTF', 'event': evt, 'state': state}
         if tag == 'ACK':
             return {'type': 'ACK', 'cmd': parts[2] if len(parts) >=3 else None}
+        if tag == 'VID':
+            return {'type': 'VID', 'vender_id': parts[2] if len(parts) >=3 else None}
         if tag == 'ERR':
             code = parts[2] if len(parts) >=3 else None
             msg = parts[3] if len(parts) >=4 else None

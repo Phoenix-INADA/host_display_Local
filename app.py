@@ -11,12 +11,46 @@ import argparse
 import time
 import sqlite3
 import os
+import requests
+from dotenv import load_dotenv
 
 # import Pico serial helper
 from pico_serial import PicoSerial, parse_pi_message
 
+load_dotenv()
+
 app = Flask(__name__)
 DATABASE = 'products.db'
+
+# Supabase config
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+
+vender_id = None
+
+def update_supabase_status(status):
+    global vender_id
+    if not vender_id or not SUPABASE_URL or not SUPABASE_KEY:
+        print(f"Supabase update skipped: vender_id={vender_id}, has_url={bool(SUPABASE_URL)}")
+        return
+    
+    url = f"{SUPABASE_URL}/rest/v1/vending_machines?machine_id=eq.{vender_id}"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+    }
+    data = {
+        "status": status,
+        "updated_at": "now()"
+    }
+    try:
+        response = requests.patch(url, json=data, headers=headers)
+        response.raise_for_status()
+        print(f"Supabase updated: {vender_id} -> {status}")
+    except Exception as e:
+        print(f"Failed to update Supabase: {e}")
 
 def get_db():
     conn = sqlite3.connect(DATABASE)
@@ -127,10 +161,14 @@ def stream():
     return Response(event_stream(), mimetype='text/event-stream')
 
 def reader_loop(client, stop_event):
+    global vender_id
     while not stop_event.is_set():
         ln = client.read_line()
         if ln:
             parsed = parse_pi_message(ln)
+            if parsed['type'] == 'VID':
+                vender_id = parsed.get('vender_id')
+                print(f"Received Vender ID: {vender_id}")
             msg_queue.put(parsed)
         else:
             time.sleep(0.01)
@@ -142,6 +180,9 @@ def restock_products():
     db.execute('UPDATE products SET stock = capacity')
     db.commit()
     
+    # 補充完了をSupabaseに通知
+    update_supabase_status('COMPLETED')
+
     # 更新後の商品情報を取得して返す
     cursor = db.execute('SELECT * FROM products')
     products = [dict(row) for row in cursor.fetchall()]
@@ -159,6 +200,11 @@ def purchase_product(product_id):
     cursor = db.execute('SELECT * FROM products WHERE id = ?', (product_id,))
     product = dict(cursor.fetchone())
     db.close()
+
+    # 在庫が0になったら補充要求をSupabaseに通知
+    if product['stock'] <= 0:
+        update_supabase_status('REQUIRE_REPLENISHMENT')
+
     return jsonify({'ok': True, 'product': product})
 
 if __name__ == '__main__':
@@ -173,6 +219,10 @@ if __name__ == '__main__':
     reader_stop.clear()
     reader_thread = threading.Thread(target=reader_loop, args=(serial_client, reader_stop), daemon=True)
     reader_thread.start()
+
+    # PICO2にVENDER IDを要求
+    time.sleep(1) # 基板の起動待ちを考慮
+    serial_client.send_raw('[PC]:VID\n')
 
     try:
         app.run(host=args.host, port=args.port_flask, threaded=True)
